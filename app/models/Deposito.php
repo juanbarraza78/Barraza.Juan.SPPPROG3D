@@ -8,11 +8,11 @@ class Deposito
     public $fecha;
     public $monto;
 
-    public function crearCuenta()
+    public function crearDeposito()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO depositos (nroDeCuenta, fecha, monto) VALUES (:nroDeCuenta, :fecha, :monto)");
-        $consulta->bindValue(':nroDeCuenta', $this->nroDeCuenta, PDO::PARAM_STR);
+        $consulta->bindValue(':nroDeCuenta', $this->nroDeCuenta, PDO::PARAM_INT);
         $consulta->bindValue(':fecha', $this->fecha, PDO::PARAM_STR);
         $consulta->bindValue(':monto', $this->monto, PDO::PARAM_INT);
         $consulta->execute();
@@ -27,7 +27,7 @@ class Deposito
 
         return $consulta->fetchAll(PDO::FETCH_CLASS, 'Deposito');
     }
-    public static function obtenerCuenta($nroDeDeposito)
+    public static function obtenerDeposito($nroDeDeposito)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM depositos WHERE nroDeDeposito = :nroDeDeposito");

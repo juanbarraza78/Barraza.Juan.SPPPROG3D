@@ -3,7 +3,7 @@ require_once './models/Cuenta.php';
 
 class CuentaController extends Cuenta
 {
-  public function CargarUno($request, $response, $args) // POST : nombre apellido tipoDocumento numeroDocumento email tipoDeCuenta saldo
+  public function CargarUno($request, $response, $args) // POST : nombre apellido tipoDocumento numeroDocumento email tipoDeCuenta saldo archivo
   {
     $parametros = $request->getParsedBody();
 

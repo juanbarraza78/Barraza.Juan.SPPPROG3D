@@ -1,5 +1,6 @@
 <?php
 require_once './models/Deposito.php';
+require_once './models/Cuenta.php';
 
 class DepositoController extends Deposito
 
@@ -10,19 +11,20 @@ class DepositoController extends Deposito
 
     $nroDeCuenta = $parametros['nroDeCuenta'];
     $fecha = $parametros['fecha'];
+    
     $monto = $parametros['monto'];
 
-    $cuenta = new Deposito();
-    $cuenta->nroDeCuenta = $nroDeCuenta;
-    $cuenta->fecha = $fecha;
-    $cuenta->monto = $monto;
+    $deposito = new Deposito();
+    $deposito->nroDeCuenta = $nroDeCuenta;
+    $deposito->fecha = $fecha;
+    $deposito->monto = $monto;
+    $id = $deposito->crearDeposito();
 
-
-
-
-      $id = $cuenta->crearCuenta();
+    $cuenta = Cuenta::obtenerCuenta($nroDeCuenta);
+    if($cuenta)
+    {
       $carpeta_archivos = 'img/2023/';
-      $nombre_archivo = $id . $cuenta->tipoDeCuenta;
+      $nombre_archivo = $cuenta->tipoDeCuenta . $deposito->nroDeCuenta . $id;
       $ruta_destino = $carpeta_archivos . $nombre_archivo . ".jpg";
       if (move_uploaded_file($_FILES['archivo']['tmp_name'], $ruta_destino)) {
         
@@ -30,23 +32,21 @@ class DepositoController extends Deposito
       } else {
         $payload = json_encode(array("mensaje" => "Error Foto"));
       }
+    }
     
 
-
-
-    
 
     $response->getBody()->write($payload);
     return $response
       ->withHeader('Content-Type', 'application/json');
   }
 
-  public function TraerUno($request, $response, $args) // GET :  nroDeCuenta
+  public function TraerUno($request, $response, $args) // GET :  nroDeDeposito
   {
     $nroDeDeposito = $args['nroDeDeposito'];
 
-    $deposito = Deposito::obtenerDeposito($nroDeCuenta);
-    $payload = json_encode($cuenta);
+    $deposito = Deposito::obtenerDeposito($nroDeDeposito);
+    $payload = json_encode($deposito);
 
     $response->getBody()->write($payload);
     return $response
@@ -55,8 +55,8 @@ class DepositoController extends Deposito
 
   public function TraerTodos($request, $response, $args) // GET 
   {
-    $lista = Cuenta::obtenerTodos();
-    $payload = json_encode(array("listaCuenta" => $lista));
+    $lista = Deposito::obtenerTodos();
+    $payload = json_encode(array("listaDeposito" => $lista));
 
     $response->getBody()->write($payload);
     return $response
