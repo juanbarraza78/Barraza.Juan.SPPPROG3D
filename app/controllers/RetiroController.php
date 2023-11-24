@@ -1,10 +1,10 @@
 <?php
-require_once './models/Deposito.php';
+require_once './models/Retiro.php';
 require_once './models/Cuenta.php';
 
-class DepositoController extends Deposito
+class RetiroController extends Retiro
 {
-  public function CargarUno($request, $response, $args) // POST : nroDeCuenta tipoDeCuenta monto archivo
+  public function CargarUno($request, $response, $args) // POST : nroDeCuenta tipoDeCuenta monto
   {
     $parametros = $request->getParsedBody();
 
@@ -13,27 +13,25 @@ class DepositoController extends Deposito
     $monto = $parametros['monto'];
     $tipoDeCuenta = $parametros['tipoDeCuenta'];
 
-    $deposito = new Deposito();
-    $deposito->nroDeCuenta = $nroDeCuenta;
-    $deposito->fecha = $fecha;
-    $deposito->monto = $monto;
+    $retiro = new Retiro();
+    $retiro->nroDeCuenta = $nroDeCuenta;
+    $retiro->fecha = $fecha;
+    $retiro->monto = $monto;
     
     $cuenta = Cuenta::obtenerCuentaTipoYNumero($nroDeCuenta, $tipoDeCuenta);
 
     if($cuenta)
     {
-
-      $id = $deposito->crearDeposito();
-
-      $carpeta_archivos = 'img/depositos/2023/';
-      $nombre_archivo = $cuenta->tipoDeCuenta . $deposito->nroDeCuenta . $id;
-      $ruta_destino = $carpeta_archivos . $nombre_archivo . ".jpg";
-      if (move_uploaded_file($_FILES['archivo']['tmp_name'], $ruta_destino)) {
-        $payload = json_encode(array("mensaje" => "Deposito creado con exito"));
-        $cuenta->saldo += $deposito->monto;
+      if($cuenta->saldo >= $retiro->monto)
+      {
+        $retiro->crearRetiro();
+        $cuenta->saldo -= $retiro->monto;
         $cuenta->modificarMontoCuenta();
-      } else {
-        $payload = json_encode(array("mensaje" => "Error Foto"));
+        $payload = json_encode(array("mensaje" => "Retiro creado con exito"));
+      }
+      else
+      {
+        $payload = json_encode(array("mensaje" => "Saldo insuficiente"));
       }
     }
     else
@@ -44,12 +42,12 @@ class DepositoController extends Deposito
     return $response
       ->withHeader('Content-Type', 'application/json');
   }
-  public function TraerUno($request, $response, $args) // GET :  nroDeDeposito
+  public function TraerUno($request, $response, $args) // GET :  nroDeRetiro
   {
-    $nroDeDeposito = $args['nroDeDeposito'];
+    $nroDeRetiro = $args['nroDeRetiro'];
 
-    $deposito = Deposito::obtenerDeposito($nroDeDeposito);
-    $payload = json_encode(Deposito::crearDepositoExtendido($deposito));
+    $retiro = Retiro::obtenerRetiro($nroDeRetiro);
+    $payload = json_encode(Retiro::crearRetiroExtendido($retiro));
 
     $response->getBody()->write($payload);
     return $response
@@ -57,8 +55,9 @@ class DepositoController extends Deposito
   }
   public function TraerTodos($request, $response, $args) // GET 
   {
-    $lista = Deposito::obtenerTodos();
-    $payload = json_encode(array("listaDeposito" => Deposito::CrearArrayDeposito($lista)));
+    
+    $lista = Retiro::CrearArrayRetiro(Retiro::obtenerTodos());
+    $payload = json_encode(array("listaRetiro" => $lista));
 
     $response->getBody()->write($payload);
     return $response
@@ -68,7 +67,6 @@ class DepositoController extends Deposito
   {
       return strcmp($deposito1->nombre, $deposito2->nombre);
   }
-
   public function ConsultarMovimientoA($request, $response, $args) // GET tipoDeCuenta fecha
   {
     $parametrosParam = $request->getQueryParams();
@@ -80,16 +78,16 @@ class DepositoController extends Deposito
       $fecha->format('d-m-Y');
     } 
     $montoTotal = 0;
-    $arrayDepositos = Deposito::obtenerTodos();
-    foreach ($arrayDepositos as $deposito) 
+    $arrayRetiros = Retiro::obtenerTodos();
+    foreach ($arrayRetiros as $retiro) 
     {
-      $CuentaDeposito = Cuenta::obtenerCuenta($deposito->nroDeCuenta);
-      if($CuentaDeposito && $CuentaDeposito->tipoDeCuenta == $tipoDeCuenta && $deposito->fecha == $fecha)
+      $CuentaRetiro = Cuenta::obtenerCuenta($retiro->nroDeCuenta);
+      if($CuentaRetiro && $CuentaRetiro->tipoDeCuenta == $tipoDeCuenta && $retiro->fecha == $fecha)
       {
-        $montoTotal += $deposito->monto;
+        $montoTotal += $retiro->monto;
       }
     }
-    $payload = json_encode(array("Total depositado" => $montoTotal));
+    $payload = json_encode(array("Total Retirado" => $montoTotal));
 
     $response->getBody()->write($payload);
     return $response
@@ -102,17 +100,18 @@ class DepositoController extends Deposito
     $tipoDeCuenta = $parametrosParam['tipoDeCuenta'];
     $nroDeCuenta = $parametrosParam['nroDeCuenta'];
 
-    $arrayDepositos = Deposito::obtenerTodos();
+    $arrayRetiros = Retiro::obtenerTodos();
     $arrayAux = [];
-    foreach ($arrayDepositos as $deposito) 
+    foreach ($arrayRetiros as $retiro) 
     {
-      $CuentaDeposito = Cuenta::obtenerCuenta($deposito->nroDeCuenta);
-      if($CuentaDeposito && $deposito->nroDeCuenta == $nroDeCuenta && $CuentaDeposito->tipoDeCuenta == $tipoDeCuenta)
+      $CuentaRetiro = Cuenta::obtenerCuenta($retiro->nroDeCuenta);
+      if($CuentaRetiro && $retiro->nroDeCuenta == $nroDeCuenta && $CuentaRetiro->tipoDeCuenta == $tipoDeCuenta)
       {
-          $arrayAux[] = $deposito;
+          $arrayAux[] = $retiro;
       }
     }
-    $payload = json_encode(array("listaDeposito" => Deposito::CrearArrayDeposito($arrayAux)));
+    
+    $payload = json_encode(array("listaRetiro" => Retiro::CrearArrayRetiro($arrayAux)));
 
     $response->getBody()->write($payload);
     return $response
@@ -124,18 +123,18 @@ class DepositoController extends Deposito
     $fechaInicio = $parametrosParam['fechaInicio'];
     $fechaFin = $parametrosParam['fechaFin'];
 
-    $arrayDepositos = Deposito::obtenerTodos();
+    $arrayRetiros = Retiro::obtenerTodos();
     $arrayAux = [];
-    foreach ($arrayDepositos as $deposito) 
+    foreach ($arrayRetiros as $retiro) 
     {
-      $CuentaDeposito = Cuenta::obtenerCuenta($deposito->nroDeCuenta);
-      if($CuentaDeposito && $deposito->fecha >= $fechaInicio && $deposito->fecha <= $fechaFin)
+      $CuentaRetiro = Cuenta::obtenerCuenta($retiro->nroDeCuenta);
+      if($CuentaRetiro && $retiro->fecha >= $fechaInicio && $retiro->fecha <= $fechaFin)
       {
-          $arrayAux[] = $deposito;
+          $arrayAux[] = $retiro;
       }
     }
     //usort($arrayAux, "DepositoController::CompararNombre"); //Por ahora nada
-    $payload = json_encode(array("listaDeposito" => Deposito::CrearArrayDeposito($arrayAux)));
+    $payload = json_encode(array("listaRetiro" => Retiro::CrearArrayRetiro($arrayAux)));
 
     $response->getBody()->write($payload);
     return $response
@@ -146,17 +145,17 @@ class DepositoController extends Deposito
     $parametrosParam = $request->getQueryParams();
     $tipoDeCuenta = $parametrosParam['tipoDeCuenta'];
 
-    $arrayDepositos = Deposito::obtenerTodos();
+    $arrayRetiros = Retiro::obtenerTodos();
     $arrayAux = [];
-    foreach ($arrayDepositos as $deposito) 
+    foreach ($arrayRetiros as $retiro) 
     {
-      $CuentaDeposito = Cuenta::obtenerCuenta($deposito->nroDeCuenta);
-      if($CuentaDeposito && $CuentaDeposito->tipoDeCuenta == $tipoDeCuenta)
+      $CuentaRetiro = Cuenta::obtenerCuenta($retiro->nroDeCuenta);
+      if($CuentaRetiro && $CuentaRetiro->tipoDeCuenta == $tipoDeCuenta)
       {
-          $arrayAux[] = $deposito;
+          $arrayAux[] = $retiro;
       }
     }
-    $payload = json_encode(array("listaDeposito" => Deposito::CrearArrayDeposito($arrayAux)));
+    $payload = json_encode(array("listaRetiro" => Retiro::CrearArrayRetiro($arrayAux)));
 
     $response->getBody()->write($payload);
     return $response
@@ -171,22 +170,21 @@ class DepositoController extends Deposito
       $moneda = "U";
     }
 
-    $arrayDepositos = Deposito::obtenerTodos();
+    $arrayRetiros = Retiro::obtenerTodos();
     $arrayAux = [];
-    foreach ($arrayDepositos as $deposito) 
+    foreach ($arrayRetiros as $retiro) 
     {
-      $CuentaDeposito = Cuenta::obtenerCuenta($deposito->nroDeCuenta);
-      if($CuentaDeposito)
+      $CuentaRetiro = Cuenta::obtenerCuenta($retiro->nroDeCuenta);
+      if($CuentaRetiro)
       {
-        $terceraLetra = substr($CuentaDeposito->tipoDeCuenta, 2, 1);
+        $terceraLetra = substr($CuentaRetiro->tipoDeCuenta, 2, 1);
         if($terceraLetra === $moneda)
         {
-            $arrayAux[] = $deposito;
+            $arrayAux[] = $retiro;
         }
       }
-
     }
-    $payload = json_encode(array("listaDeposito" => Deposito::CrearArrayDeposito($arrayAux)));
+    $payload = json_encode(array("listaRetiro" => Retiro::CrearArrayRetiro($arrayAux)));
 
     $response->getBody()->write($payload);
     return $response

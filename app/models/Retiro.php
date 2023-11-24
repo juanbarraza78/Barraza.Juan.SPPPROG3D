@@ -1,5 +1,6 @@
 <?php
 
+require_once './models/Cuenta.php';
 
 class Retiro
 {
@@ -8,58 +9,38 @@ class Retiro
     public $fecha;
     public $monto;
 
-    public function __construct($nombre, $apellido, $tipoDocumento, $numeroDocumento, $email, $tipoDeCuenta, $moneda, $saldoInicial, $nroDeCuenta, $nroRetiro = null, $fecha = null, $monto)
+    //Base de datos
+    public function crearRetiro()
     {
-        $this->_nombre= $nombre;
-        $this->_apellido= $apellido;
-        $this->_tipoDocumento= $tipoDocumento;
-        $this->_numeroDocumento= $numeroDocumento;
-        $this->_email= $email;
-        $this->_tipoDeCuenta= $tipoDeCuenta;
-        $this->_moneda= $moneda;
-        $this->_saldoInicial= $saldoInicial;
-        $this->_nroDeCuenta= $nroDeCuenta;
-        if($nroRetiro == null)
-        {
-            $this->_nroDeRetiro = Retiro::GenerarIdAutoIncrementalRetiro();
-        }
-        else
-        {
-            $this->_nroDeRetiro = $nroRetiro;
-        }
-        if($fecha == null)
-        {
-            $this->_fecha = date("d-m-Y");
-        }
-        else
-        {
-            $this->_fecha = $fecha;
-        }
-        $this->_monto = $monto;
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO retiros (nroDeCuenta, fecha, monto) VALUES (:nroDeCuenta, :fecha, :monto)");
+        $consulta->bindValue(':nroDeCuenta', $this->nroDeCuenta, PDO::PARAM_INT);
+        $consulta->bindValue(':fecha', $this->fecha);
+        $consulta->bindValue(':monto', $this->monto, PDO::PARAM_INT);
+        $consulta->execute();
+
+        return $objAccesoDatos->obtenerUltimoId();
+    }
+    public static function obtenerTodos()
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM retiros");
+        $consulta->execute();
+
+        return $consulta->fetchAll(PDO::FETCH_CLASS, 'Retiro');
+    }
+    public static function obtenerRetiro($nroDeRetiro)
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM retiros WHERE nroDeRetiro = :nroDeRetiro");
+        $consulta->bindValue(':nroDeRetiro', $nroDeRetiro, PDO::PARAM_INT);
+        $consulta->execute();
+
+        return $consulta->fetchObject('Retiro');
     }
 
-    public static function CompararNombre($retiro1, $retiro2)
-    {
-        return strcmp($retiro1->_nombre, $retiro2->_nombre);
-    }
-
-    public static function GenerarIdAutoIncrementalRetiro()
-    {
-        $nroDeRetiro = 3000;
-
-        if(file_exists("nroDeRetiro.txt"))
-        {
-            $nroDeRetiro = file_get_contents("nroDeRetiro.txt");           
-        }
-
-        $nroDeRetiro++;
-
-        file_put_contents("nroDeRetiro.txt", $nroDeRetiro);
-
-        return $nroDeRetiro;
-    }
-
-    public static function ObtenerRetiros()
+    //JSON
+    public static function ObtenerRetirosJSON()
     {
         $arrayRetiros = array();
         $rutaArchivo = 'retiros.json';
@@ -80,151 +61,54 @@ class Retiro
         }
         return $arrayRetiros;
     }
-
-    public static function GuardarRetiros($arrayRetiros)
+    public static function GuardarRetirosJSON($arrayRetiros)
     {
         $rutaArchivo = "retiros.json";
         $archivoJson = json_encode($arrayRetiros,JSON_PRETTY_PRINT);
         file_put_contents($rutaArchivo,$archivoJson);
     }
 
-    public static function AltaRetirar($nuevoRetiro)
+    //Otos
+    public static function CompararNombre($retiro1, $retiro2)
     {
-        $arrayRetiros = Retiro::ObtenerRetiros();
-        $arrayRetiros[] = $nuevoRetiro;
-        Retiro::GuardarRetiros($arrayRetiros);
+        return strcmp($retiro1->_nombre, $retiro2->_nombre);
     }
-
-    public static function BuscarTotalRetirado($TipoDeCuenta, $moneda, $fecha = null)
+    public static function CrearArrayRetiro($arrayRetiros)
     {
-        $montoTotal = 0;
-        if($fecha == null)
-        {
-            $fecha = New Datetime();
-            $fecha->sub(new DateInterval('P1D'));
-            $fecha->format('d-m-Y');
-        }
-        $arrayRetiros = Retiro::ObtenerRetiros();
-        foreach ($arrayRetiros as $retiro) 
-        {
-            if($retiro->_tipoDeCuenta == $TipoDeCuenta && $retiro->_moneda == $moneda && $retiro->_fecha == $fecha)
-            {
-                $montoTotal += $retiro->_monto;
-            }
-        }
-        return $montoTotal;
-    }
-    // public static function BuscarTotalRetiradoActivo($TipoDeCuenta, $moneda, $fecha = null)
-    // {
-    //     $arrayAux = [];
-    //     if($fecha == null)
-    //     {
-    //         $fecha = New Datetime();
-    //         $fecha->sub(new DateInterval('P1D'));
-    //         $fecha->format('d-m-Y');
-    //     }
-    //     $arrayRetiros = Retiro::ObtenerRetiros();
-    //     foreach ($arrayRetiros as $retiro) 
-    //     {
-    //         if($retiro->_tipoDeCuenta == $TipoDeCuenta && $retiro->_moneda == $moneda && $retiro->_fecha == $fecha)
-    //         {
-    //             $arrayAux[] = $retiro;
-    //         }
-    //     }
-    //     return $arrayAux;
-    // }
-
-    public static function BuscarRetiroParticular($numeroDeCuenta)
-    {
-        $arrayRetiros = Retiro::ObtenerRetiros();
         $arrayAux = [];
-        foreach ($arrayRetiros as $retiro) 
-        {
-            if($retiro->_nroDeCuenta == $numeroDeCuenta)
-            {
-                $arrayAux[] = $retiro;
-            }
-        }
-        return $arrayAux;
-    }
-
-    public static function BuscarRetiroEntreFechas($fechaInicial, $fechaFinal)
-    {
-        $arrayRetiros = Retiro::ObtenerRetiros();
-        $arrayAux = [];
-        foreach ($arrayRetiros as $retiro) 
-        {
-            if($retiro->_fecha >= $fechaInicial && $retiro->_fecha <= $fechaFinal)
-            {
-                $arrayAux[] = $retiro;
-            }
-        }
-        usort($arrayAux, "Retiro::CompararNombre");
-        return $arrayAux;
-    }
-
-    public static function BuscarPorTipoDeCuentaRetiro($TipoDeCuenta)
-    {
-        $arrayRetiros = Retiro::ObtenerRetiros();
-        $arrayAux = [];
-        foreach ($arrayRetiros as $retiro) 
-        {
-            if($retiro->_tipoDeCuenta == $TipoDeCuenta)
-            {
-                $arrayAux[] = $retiro;
-            }
-        }
-        return $arrayAux;
-    }
-
-    public static function BuscarPorMonedaRetiro($moneda)
-    {
-        $arrayRetiros = Retiro::ObtenerRetiros();
-        $arrayAux = [];
-        foreach ($arrayRetiros as $retiro) 
-        {
-            if($retiro->_moneda == $moneda)
-            {
-                $arrayAux[] = $retiro;
-            }
-        }
-        return $arrayAux;
-    }
-
-    private function MostrarRetiro()
-    {
-        echo $this->_nombre."-";
-        echo $this->_apellido."-";
-        echo $this->_tipoDocumento."-";
-        echo $this->_numeroDocumento."-";
-        echo $this->_email."-";
-        echo $this->_tipoDeCuenta."-";
-        echo $this->_moneda."-";
-        echo $this->_saldoInicial."-";
-        echo $this->_nroDeCuenta."-";
-        echo $this->_nroDeRetiro."-";
-        echo $this->_fecha."-";
-        echo $this->_monto;
-        echo "</br>";
-    }
-
-    public static function MostrarArrayRetiro($arrayRetiros)
-    {
         if($arrayRetiros != null)
         {
-            echo "Nombre - Apellido - Tipo de documento - Numero de documento - Email - Tipo de cuenta - Tipo de moneda - Saldo inicial - Numero de cuenta - Numero de Retiro - Fecha - Monto";
-            echo "</br>";
-            echo "</br>";
-            foreach ($arrayRetiros as $retiro) 
-            {
-                $retiro->MostrarRetiro();
+            foreach ($arrayRetiros as $retiro) {
+                $obj = Retiro::crearRetiroExtendido($retiro);
+                if($obj != null)
+                {
+                    $arrayAux[] = $obj;
+                }
             }
         }
-        else{
-            echo "No hay lista de Retiros </br>";
-        }
-
+        return $arrayAux;
     }
-
+    public static function crearRetiroExtendido($retiro)
+    {
+        $obj = null;
+        $CuentaRetiro = Cuenta::obtenerCuenta($retiro->nroDeCuenta);
+        if($CuentaRetiro)
+        {
+            $obj = new stdClass();
+            $obj->nroDeCuenta = $retiro->nroDeCuenta;
+            $obj->nroDeRetiro = $retiro->nroDeRetiro;
+            $obj->fecha = $retiro->fecha;
+            $obj->monto = $retiro->monto;
+            $obj->nombre = $CuentaRetiro->nombre;
+            $obj->apellido = $CuentaRetiro->apellido;
+            $obj->tipoDocumento = $CuentaRetiro->tipoDocumento;
+            $obj->numeroDocumento = $CuentaRetiro->numeroDocumento;
+            $obj->email = $CuentaRetiro->email;
+            $obj->tipoDeCuenta = $CuentaRetiro->tipoDeCuenta;
+            $obj->saldo = $CuentaRetiro->saldo;
+            $obj->estaActivo = $CuentaRetiro->estaActivo;
+        }
+        return $obj;
+    }
 
 }

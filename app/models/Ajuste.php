@@ -7,7 +7,7 @@ class Ajuste
     public $numeroDeDepositoORetiro;
     public $numeroDeAjuste;
 
-
+    //Base de datos
     public function crearAjuste()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
@@ -19,38 +19,23 @@ class Ajuste
 
         return $objAccesoDatos->obtenerUltimoId();
     }
-
-    public function crearAjusteJSON()
-    {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO ajustes (importe, motivo, numeroDeDepositoORetiro, numeroDeAjuste) VALUES (:importe, :motivo, :numeroDeDepositoORetiro, :numeroDeAjuste)");
-        $consulta->bindValue(':importe', $this->importe, PDO::PARAM_INT);
-        $consulta->bindValue(':motivo', $this->motivo, PDO::PARAM_STR);
-        $consulta->bindValue(':numeroDeDepositoORetiro', $this->numeroDeDepositoORetiro, PDO::PARAM_INT);
-        $consulta->bindValue(':numeroDeAjuste', $this->numeroDeAjuste, PDO::PARAM_INT);
-        $consulta->execute();
-
-        return $objAccesoDatos->obtenerUltimoId();
-    }
     public static function obtenerTodos()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT importe, motivo, numeroDeDepositoORetiro, numeroDeAjuste FROM ajustes");
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM ajustes");
         $consulta->execute();
 
         return $consulta->fetchAll(PDO::FETCH_CLASS, 'Ajuste');
     }
-
     public static function obtenerAjuste($numeroDeAjuste)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT importe, motivo, numeroDeDepositoORetiro, numeroDeAjuste FROM ajustes WHERE numeroDeAjuste = :numeroDeAjuste");
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM ajustes WHERE numeroDeAjuste = :numeroDeAjuste");
         $consulta->bindValue(':numeroDeAjuste', $numeroDeAjuste, PDO::PARAM_INT);
         $consulta->execute();
 
-        return $consulta->fetchObject('Mesa');
+        return $consulta->fetchObject('Ajuste');
     }
-
     public static function modificarAjuste($numeroDeAjuste, $numeroDeDepositoORetiro, $importe, $motivo)
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
@@ -61,7 +46,6 @@ class Ajuste
         $consulta->bindValue(':numeroDeAjuste', $numeroDeAjuste, PDO::PARAM_INT);
         $consulta->execute();
     }
-
     public static function borrarAjuste($numeroDeAjuste)
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
@@ -70,14 +54,8 @@ class Ajuste
         $consulta->execute();
     }
 
-    public static function borrarAjustes()
-    {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("TRUNCATE ajustes");
-        $consulta->execute();
-    }
-
-    public static function ObtenerAjustes()
+    //JSON
+    public static function ObtenerAjustesJSON()
     {
         $arrayAjustes = array();
         $rutaArchivo = 'ajustes.json';
@@ -102,13 +80,21 @@ class Ajuste
         }
         return $arrayAjustes;
     }
-
-    public static function GuardarAjustes($arrayAjustes)
+    public static function GuardarAjustesJSON($arrayAjustes)
     {
         $rutaArchivo = "ajustes.json";
         $archivoJson = json_encode($arrayAjustes,JSON_PRETTY_PRINT);
         file_put_contents($rutaArchivo,$archivoJson);
     }
+
+
+
+
+
+
+
+
+
 
     
 }

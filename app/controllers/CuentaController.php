@@ -1,5 +1,7 @@
 <?php
 require_once './models/Cuenta.php';
+require_once './models/Retiro.php';
+require_once './models/Deposito.php';
 
 class CuentaController extends Cuenta
 {
@@ -27,7 +29,7 @@ class CuentaController extends Cuenta
     } else {
       $cuenta->saldo = 0;
     }
-    $cuenta->estaActivo = false;
+    $cuenta->estaActivo = true;
 
     $arrayCuentas = Cuenta::obtenerTodos();
     $existe = false;
@@ -40,7 +42,7 @@ class CuentaController extends Cuenta
 
     if (!$existe) {
       $id = $cuenta->crearCuenta();
-      $carpeta_archivos = 'img/2023/';
+      $carpeta_archivos = 'img/cuentas/2023/';
       $nombre_archivo = $id . $cuenta->tipoDeCuenta;
       $ruta_destino = $carpeta_archivos . $nombre_archivo . ".jpg";
       if (move_uploaded_file($_FILES['archivo']['tmp_name'], $ruta_destino)) {
@@ -62,7 +64,6 @@ class CuentaController extends Cuenta
     return $response
       ->withHeader('Content-Type', 'application/json');
   }
-
   public function TraerUno($request, $response, $args) // GET :  nroDeCuenta
   {
     $nroDeCuenta = $args['nroDeCuenta'];
@@ -74,7 +75,6 @@ class CuentaController extends Cuenta
     return $response
       ->withHeader('Content-Type', 'application/json');
   }
-
   public function TraerTodos($request, $response, $args) // GET 
   {
     $lista = Cuenta::obtenerTodos();
@@ -84,7 +84,6 @@ class CuentaController extends Cuenta
     return $response
       ->withHeader('Content-Type', 'application/json');
   }
-
   public function TraerUnoTipoYCuenta($request, $response, $args) // POST :  nroDeCuenta tipoDeCuenta
   {
     $parametros = $request->getParsedBody();
@@ -111,91 +110,110 @@ class CuentaController extends Cuenta
     return $response
       ->withHeader('Content-Type', 'application/json');
   }
+  public function ModificarUno($request, $response, $args) // POST : nombre apellido tipoDocumento numeroDocumento email tipoDeCuenta nroDeCuenta
+  {
+    $parametros = $request->getParsedBody();
 
-  // public function TraerTodosEstado($request, $response, $args) // GET 
-  // {
-  //   $parametrosParam = $request->getQueryParams();
-  //   $estado = $parametrosParam['estado'];
+    $nombre = $parametros['nombre'];
+    $apellido = $parametros['apellido'];
+    $tipoDocumento = $parametros['tipoDocumento'];
+    $numeroDocumento = $parametros['numeroDocumento'];
+    $email = $parametros['email'];
+    $tipoDeCuenta = $parametros['tipoDeCuenta'];
+    $nroDeCuenta = $parametros['nroDeCuenta'];
 
-  //   $lista = Mesa::obtenerTodosEstado($estado);
-  //   $payload = json_encode(array("listaMesa" => $lista));
+    $cuenta = new Cuenta();
 
-  //   $response->getBody()->write($payload);
-  //   return $response
-  //     ->withHeader('Content-Type', 'application/json');
-  // }
-  // public function ModificarUno($request, $response, $args) // POST 
-  // {
-  //   $parametros = $request->getParsedBody();
+    $cuenta->nombre = $nombre;
+    $cuenta->apellido = $apellido;
+    $cuenta->tipoDocumento = $tipoDocumento;
+    $cuenta->numeroDocumento = $numeroDocumento;
+    $cuenta->email = $email;
+    $cuenta->tipoDeCuenta = $tipoDeCuenta;
+    $cuenta->nroDeCuenta = $nroDeCuenta;
 
-  //   $idMesa = $parametros['idMesa'];
-  //   $estado = $parametros['estado'];
+    
 
-  //   Mesa::modificarMesa($idMesa, $estado);
+    if (Cuenta::obtenerCuentaTipoYNumero($nroDeCuenta,$tipoDeCuenta)) {
+      $payload = json_encode(array("mensaje" => "Se Modifico correctamente"));
+      $cuenta->ModificarCuenta();
+    }
+    else
+    {
+      $payload = json_encode(array("mensaje" => "No existe"));
+    }
 
-  //   $payload = json_encode(array("mensaje" => "Mesa modificada con exito"));
+    $response->getBody()->write($payload);
+    return $response
+      ->withHeader('Content-Type', 'application/json');
+  }
+  public function EliminarUno($request, $response, $args) // DELETE : tipoDeCuenta nroDeCuenta
+  {
+    $parametros = $request->getQueryParams();
+    $tipoDeCuenta = $parametros['tipoDeCuenta'];
+    $nroDeCuenta = $parametros['nroDeCuenta'];
 
-  //   $response->getBody()->write($payload);
-  //   return $response
-  //     ->withHeader('Content-Type', 'application/json');
-  // }
-  // public function BorrarUno($request, $response, $args) // POST 
-  // {
+    $cuenta = new Cuenta();
 
-  //   $idMesa = $args['idMesa'];
-  //   Mesa::borrarMesa($idMesa);
+    if (Cuenta::obtenerCuentaTipoYNumero($nroDeCuenta,$tipoDeCuenta)) {
+      $cuenta->estaActivo = false;
+      $cuenta->tipoDeCuenta = $tipoDeCuenta;
+      $cuenta->nroDeCuenta = $nroDeCuenta;
+      $cuenta->EliminarCuenta();
 
-  //   $payload = json_encode(array("mensaje" => "Mesa borrado con exito"));
+      $nombre_archivo = $nroDeCuenta . $tipoDeCuenta;
+      $ruta_origen = 'img/cuentas/2023/' . $nombre_archivo . ".jpg";
+      $ruta_destino = 'img/BackupCuentas/2023/'.$nombre_archivo.".jpg";
+      if (rename($ruta_origen , $ruta_destino)) {
+        $payload = json_encode(array("mensaje" => "Cuenta Eliminada"));
+      }
+      else
+      {
+        $payload = json_encode(array("mensaje" => "Error foto"));
+      }
+      
+    }
+    else
+    {
+      $payload = json_encode(array("mensaje" => "No existe esa Cuenta"));
+    }
 
-  //   $response->getBody()->write($payload);
-  //   return $response
-  //     ->withHeader('Content-Type', 'application/json');
-  // }
-  // public function GuardarCSV($request, $response, $args) // GET
-  // {
+    $response->getBody()->write($payload);
+    return $response
+      ->withHeader('Content-Type', 'application/json');
+  }
+  public function ConsultarMovimientoF($request, $response, $args) // GET tipoDeCuenta nroDeCuenta
+  {
+    $parametrosParam = $request->getQueryParams();
 
-  //   if($archivo = fopen("csv/mesas.csv", "w"))
-  //   {
-  //     $lista = Mesa::obtenerTodos();
-  //     foreach( $lista as $mesa )
-  //     {
-  //         fputcsv($archivo, [$mesa->idMesa, $mesa->estado]);
-  //     }
-  //     fclose($archivo);
-  //     $payload =  json_encode(array("mensaje" => "La lista de mesas se guardo correctamente"));
-  //   }
-  //   else
-  //   {
-  //     $payload =  json_encode(array("mensaje" => "No se pudo abrir el archivo de mesas"));
-  //   }
+    $tipoDeCuenta = $parametrosParam['tipoDeCuenta'];
+    $nroDeCuenta = $parametrosParam['nroDeCuenta'];
 
-  //   $response->getBody()->write($payload);
-  //   return $response
-  //     ->withHeader('Content-Type', 'application/json');
-  // }
-  // public function CargarCSV($request, $response, $args) // GET
-  // {
-  //   if(($archivo = fopen("csv/mesas.csv", "r")) !== false)
-  //   {
-  //     Mesa::borrarMesas();
-  //     while (($filaMesa = fgetcsv($archivo, 0, ',')) !== false)
-  //     {
-  //       $nuevaMesa = new Mesa();
-  //       $nuevaMesa->idMesa = $filaMesa[0];
-  //       $nuevaMesa->estado = $filaMesa[1];
-  //       $nuevaMesa->crearMesaCSV();
-  //     }
-  //     fclose($archivo);
-  //     $payload =  json_encode(array("mensaje" => "Las mesas se cargaron correctamente"));
-  //   }
-  //   else
-  //   {
-  //     $payload =  json_encode(array("mensaje" => "No se pudo leer el archivo de mesas"));
-  //   }
+    $arrayDepositos = Deposito::obtenerTodos();
+    $arrayRetiros = Retiro::obtenerTodos();
+    $arrayAux = [];
+    foreach ($arrayDepositos as $deposito) 
+    {
+      $CuentaDeposito = Cuenta::obtenerCuenta($deposito->nroDeCuenta);
+      if($CuentaDeposito && $deposito->nroDeCuenta == $nroDeCuenta && $CuentaDeposito->tipoDeCuenta == $tipoDeCuenta)
+      {
+          $arrayAux[] = $deposito;
+      }
+    }
+    foreach ($arrayRetiros as $retiro) 
+    {
+      $CuentaRetiro = Cuenta::obtenerCuenta($retiro->nroDeCuenta);
+      if($CuentaRetiro && $retiro->nroDeCuenta == $nroDeCuenta && $CuentaRetiro->tipoDeCuenta == $tipoDeCuenta)
+      {
+          $arrayAux[] = $retiro;
+      }
+    }
 
-  //   $response->getBody()->write($payload);
-  //   return $response
-  //     ->withHeader('Content-Type', 'application/json');
-  // }
+    $payload = json_encode(array("lista" => $arrayAux));
+
+    $response->getBody()->write($payload);
+    return $response
+      ->withHeader('Content-Type', 'application/json');
+  }
 
 }
