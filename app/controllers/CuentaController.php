@@ -191,13 +191,16 @@ class CuentaController extends Cuenta
 
     $arrayDepositos = Deposito::obtenerTodos();
     $arrayRetiros = Retiro::obtenerTodos();
-    $arrayAux = [];
+
+    $arrayDepositosFiltrado = [];
+    $arrayRetirosFiltrado = [];
+
     foreach ($arrayDepositos as $deposito) 
     {
       $CuentaDeposito = Cuenta::obtenerCuenta($deposito->nroDeCuenta);
       if($CuentaDeposito && $deposito->nroDeCuenta == $nroDeCuenta && $CuentaDeposito->tipoDeCuenta == $tipoDeCuenta)
       {
-          $arrayAux[] = $deposito;
+          $arrayDepositosFiltrado[] = $deposito;
       }
     }
     foreach ($arrayRetiros as $retiro) 
@@ -205,11 +208,10 @@ class CuentaController extends Cuenta
       $CuentaRetiro = Cuenta::obtenerCuenta($retiro->nroDeCuenta);
       if($CuentaRetiro && $retiro->nroDeCuenta == $nroDeCuenta && $CuentaRetiro->tipoDeCuenta == $tipoDeCuenta)
       {
-          $arrayAux[] = $retiro;
+          $arrayRetirosFiltrado[] = $retiro;
       }
     }
-
-    $payload = json_encode(array("lista" => $arrayAux));
+    $payload = json_encode(array("listaDepositos" => Deposito::CrearArrayDeposito($arrayDepositosFiltrado), "listaRetiros" => Retiro::CrearArrayRetiro($arrayRetirosFiltrado)));
 
     $response->getBody()->write($payload);
     return $response
